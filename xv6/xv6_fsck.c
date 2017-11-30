@@ -89,54 +89,137 @@ int main(int argc, char * argv[]) {
 		dip++;
 	}
 
-	// Test 2 -
-	/*
+	// Test 2 - check if the addresses are valid by checking if all the data
+	// block addresses are in between the location of the data bitmap and the sizeof the image pointer
 
-	Notes: 28 blocks later lies the bitmap for the data blocks	
-
-	*/	
-	
-	// get the first inode position	
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
-	int bblock;
-		
-	// run through the inode table
-	for(i = 0 ; i < sb->ninodes ; i++)  {
-		
-		// check if the inodes are in use
-		if(dip->type > 0  && dip->type < 4) { 
-			
-			// loop through the direct addresses 
-			for(int j = 0 ; j < NDIRECT ; j++) {  
 
-				//printf("inode: %d data block: %d bblock: %ld\n", i, dip->addrs[j], BBLOCK(dip->addrs[j], sb->ninodes));		
-				bblock = BBLOCK(dip->addrs[j], sb->ninodes);	
-				
-			
-				
+	// run through the inodes
+	for(i = 0; i < sb->ninodes; i++) { 
+		// check if the inodes are valid
+		if(dip->type > 0 && dip->type < 4) { 
+			//check if the indirect address is valid 
 			
 
-		
-
-
+			if((dip->addrs[12] < (IBLOCK(sb->ninodes)+1) && (dip->addrs[12] != 0))|| dip->addrs[12] > sbuf.st_size/BSIZE) { 
+				fprintf(stderr, "ERROR: bad indirect address in inode\n");
+				printf("type of inode: %d address: %d \n", dip->type, dip->addrs[12]);		
 			}
-	
-		} 
+
+			// check if each direct address is valid
+			for(int j = 0 ; j < NDIRECT ; j++)  {
+					if(dip->addrs[j] < (IBLOCK(sb->ninodes) &&  (dip->addrs[12] != 0)) || dip->addrs[j] > sbuf.st_size/BSIZE) { 
+                                		fprintf(stderr, "ERROR: bad direct address in inode\n");
+		                                printf("type of inode: %d address: %d\n", dip->type, dip->addrs[j]);
+
+	                      		}
+ 
+ 	  		}
+			
+			
+
+
+		}
 		dip++;
 	}
 
+	// Test 3 	
+
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	dip++;
+	struct dirent *d;
+
+			
+			
+		fflush(stdout);
+		// check if the . directory exists
+		d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
+		if(strcmp(d->name, ".") != 0) { 
+			fprintf(stderr, "ERROR: root directory does not exist\n");
+		}
+
+		if(d->inum != 1) { 
+                        fprintf(stderr, "ERROR: root directory does not exist\n");
+		}
+		
+		// check if the .. directory exists
+		d++;
+		if(strcmp(d->name, "..") != 0) { 
+			fprintf(stderr, "ERROR: root directory does not exist\n");
+		}
+		
+		// check if the inum of the parent directory is also is 1	
+		if(d->inum != 1) { 
+			fprintf(stderr, "ERROR: root directory does not exist\n");
+		}
  			
-	
 
-	
 
-	// figure out the bitmap
+	// Test 4
 
-	// do other stuff (rest of p5);
 
+	// go through each inode 
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 	
-	return  0;
+	for(i = 0 ; i < sb->ninodes; i++)   { 
+
+		// check if the type of the inode is a directory
+		if(dip->type == T_DIR) { 
+				
+			// check if the . exists
+			d = (struct dirent *) (img_ptr + dip->addrs[0]*512);
+        	        if(strcmp(d->name, ".") != 0) {
+	                       fprintf(stderr, "ERROR: directory not properly formatted\n");
+                	}
+
+			// check if the inum number matches the inode number - indicating that the . entry points to the directory itself
+			if(d->inum != i) { 
+                               fprintf(stderr, "ERROR: directory not properly formatted\n");
+			}
+		
+			// check if the .. entry exists
+			d++;
+			if(strcmp(d->name, "..") != 0) { 
+                               fprintf(stderr, "ERROR: directory not properly formatted\n");			
+			}
+			
+		}
+		dip++;
 	
+	}
+
+
+	// Test 5
+		
+
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	
+	// run through the inodes
+	for(i = 0 ; i < sb->ninodes ; i++) { 
+
+		// ensure the inode type is valid 
+		if(dip->type > 0 && dip->type < 4) { 
+
+			// run through the addresses 
+			for(int j = 0; j < NDIRECT + 1; j++) {
+
+				// ensure the address is not 0 and valid
+				if(dip->addrs[j] != 0) { 
+		
+										
+
+
+				}
+			
+
+			} 
+		
+		
+		}
+
+
+
+	}	
 
 }
 
