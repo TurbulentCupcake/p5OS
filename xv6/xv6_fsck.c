@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdint.h>
+#include "include/types.h"
 
 #define ROOTNO 1
 #define BSIZE 512
@@ -131,7 +132,6 @@ int main(int argc, char * argv[]) {
 
 			
 			
-		fflush(stdout);
 		// check if the . directory exists
 		d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
 		if(strcmp(d->name, ".") != 0) { 
@@ -193,7 +193,8 @@ int main(int argc, char * argv[]) {
 		
 
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
-	
+	uint byte_number, bit_number;
+	uchar actual_byte, value;
 	// run through the inodes
 	for(i = 0 ; i < sb->ninodes ; i++) { 
 
@@ -202,12 +203,24 @@ int main(int argc, char * argv[]) {
 
 			// run through the addresses 
 			for(int j = 0; j < NDIRECT + 1; j++) {
-
 				// ensure the address is not 0 and valid
-				if(dip->addrs[j] != 0) { 
-		
-										
-
+				if(dip->addrs[j] != 0 && (dip->addrs[j] > (IBLOCK(sb->ninodes)+1) && dip->addrs[j] < sbuf.st_size/BSIZE)) { 
+			
+				
+					// figure which byte the address value belongs to
+					byte_number = dip->addrs[j]/8; 				
+					// get the bit offset		
+					bit_number = dip->addrs[j]%8 ;
+					// get the actual byte position from the beginning 
+					actual_byte = (uchar)*((uchar*)img_ptr + (IBLOCK(sb->ninodes)+1)*BSIZE + byte_number);	
+					// onbtain the correct value by bit shifting
+					//value = (actual_byte) & ( (7-bit_number) <<  1);
+					value = (actual_byte >> bit_number) & 1;				
+					//printf("value: %d index: %d block addrs: %d\n", value, i, dip->addrs[j]);
+					if(value != 1) { 
+						//printf("bit number: %d\n value: %d\n", bit_number, value);
+						fprintf(stderr ,"ERROR: address used by inode but marked free in bitmap\n");
+					}
 
 				}
 			
@@ -219,7 +232,107 @@ int main(int argc, char * argv[]) {
 
 
 
+		dip++;
 	}	
+
+	// Test 6
+		
+        dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	uint data_block;
+	uint validDirectInodes[sb->ninodes*(NDIRECT+1)];
+	uint validIndirectInodes[100000];
+	uint posDirect, posIndirect;
+	posDirect= 0;
+	posIndirect = 0;
+	// go through each inode and store all valid addresses
+	for(i = 0 ; i < sb->ninodes; i++) { 
+		
+		for(int j = 0; j < NDIRECT+1; j++) { 
+	
+			 if(dip->addrs[j] != 0 && (dip->addrs[j] > (IBLOCK(sb->ninodes)+1) && dip->addrs[j] < sbuf.st_size/BSIZE)) { 
+				validDirectInodes[posDirect] = dip->addrs[j];
+				posDirect++;
+				//printf("pos: %d\n", pos);
+			}
+
+		}
+		// if we have an indrect address, then check through all the addresses inside that indirect block
+		  if(dip->addrs[12] != 0 && (dip->addrs[12] > (IBLOCK(sb->ninodes)+1) && dip->addrs[12] < sbuf.st_size/BSIZE)) {
+			
+
+				uint * dblock,*  indirect_addr;
+				dblock = (uint*)( img_ptr + dip->addrs[12]*BSIZE);				
+
+				for(int  l = 0; l < BSIZE/sizeof(uint); l++)  {
+						indirect_addr = (uint*)(dblock+l);	
+		     			        if(*indirect_addr != 0 && (*indirect_addr > (IBLOCK(sb->ninodes)+1) && *indirect_addr < sbuf.st_size/BSIZE)) {
+								printf("Indirect address : %d\n", *indirect_addr);
+								validIndirectInodes[posIndirect] = (uint)*indirect_addr;
+								posIndirect++;	
+	
+                                                 }
+
+				}
+                 }
+
+		dip++;
+	} 	
+	/*	
+	for(int j = 0 ; j < pos; j++) { 
+			printf("valid inode %d: %d\n", j, validInodes[j]);	
+	}
+	*/
+	
+	printf("------------------------\n");
+	
+	// for every byte in the final 
+	for(i = 0 ; i < BSIZE ; i++) { 
+
+		// get the actual byte 
+                actual_byte = (uchar)*((uchar*)img_ptr + (IBLOCK(sb->ninodes)+1)*BSIZE + i);
+
+		for(int j = 0; j < 8 ; j++) { 
+			// get the actual bit
+
+			uint foundFlag = 0;
+			if(((actual_byte) & (128 >> j)))  {
+					
+					// obtain the correct block number
+					data_block = i*8 + j;				
+					if(data_block <= (IBLOCK(sb->ninodes)+1)) continue;	
+				
+					// check if the block number is present within our array of valid nodes
+					for(int k = 0 ; k < posDirect; k++) { 
+	 					if(validDirectInodes[k] == data_block) { 
+							foundFlag = 1;				
+							break;
+						}
+					}
+					
+					// if it wasnt found in the direct addresses, then try finding it in the indirect addresses
+					if(foundFlag != 0) { 
+					
+						for(int k=0; k < posIndirect; k++) { 
+						
+							if(validIndirectInodes[k] == (uint)data_block) { 
+								foundFlag = 1;	
+								break;
+							}	
+
+						}
+					}
+					if(foundFlag!=1) { 
+				
+					printf("block no: %d\n", data_block);	
+							printf("Error\n");
+					}
+
+					
+			}
+		}
+	}
+		
+
 
 }
 
