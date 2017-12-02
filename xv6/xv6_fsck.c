@@ -445,7 +445,115 @@ int main(int argc, char * argv[]) {
 	// Test 10
 
 	/* let me try to understand what is exactly happening here.
-	So we should basically go through each directory entry
+	1. So we should basically go through each directory entry.
+	2. Then access its inode number and its addresses.
+	3. check if this address is valid
+	4. Check if the bitmap value for this address is valid also 
+	5. if it is not valid, then scream
+	*/	
+	
+        dip = (struct dinode *) (img_ptr + 2*BSIZE);
+
+	// run through the inodes
+	for(i = 0; i < sb->ninodes; i++) { 
+
+		// check if its a directory
+		if(dip->type == T_DIR) { 
+			
+			
+                        d = (struct dirent *)(img_ptr + dip->addrs[0]*512);
+			// iterate through the directory entries	
+			for(int j = 0 ; j < BSIZE/sizeof(struct dirent); j++)  {
+				
+				// check if the inode exists within the inode table
+				if(d->inum >= sb->ninodes) { 
+					fprintf(stderr, "ERROR: inode referred to in directory but marked free\n");	
+				}
+			}
+
+
+		}
+		dip++;
+	}
+
+
+	// Test 11
+	/* let me try to think this through too.
+	Essentially, we need to look at the inode of every file and get its nlinks value
+	Once we have this value, we need to iterate through every inode which happens
+	to be a directory and go to the address of that directory. 
+	Once we find the first address, just go through that whole directory and if you see
+	the name of that file, increment a counter.
+	If the counter value matches the value of nlinks, then you're in good shape.
+	Else, something messed up
+	*/
+
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	
+	// iterate through each inode
+	for( i=0; i < sb->ninodes; i++) { 
+	
+		// check if the inode points to a file
+		if(dip->type == T_FILE) { 
+			
+			struct dinode * dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
+			// now iterate through each inode of type T_DIR
+			int link_counter = 0;
+			for(int j = 0 ; j  < sb->ninodes ;j++)  {
+				// check if the type of the inode is a directory
+				if(dip_2->type == T_DIR) { 
+					// set the directory pointer
+					 d = (struct dirent *)(img_ptr + dip_2->addrs[0]*512);
+					 for(int k = 0 ; k < BSIZE/sizeof(struct dirent); k++) {
+					
+						// is the inode that the file links to the same as the inode of the file?~:w
+						if(d->inum == i) { 
+							// increment the counter because the file is being referenced 
+							link_counter++;
+						}
+						d++;
+					 }
+
+
+				}
+				dip_2++;
+			}
+			// here, we should have obtained the number of possible links
+			// now compare them
+			if(dip->nlink != link_counter) { 
+				fprintf(stderr, "ERROR: bad reference count for file\n");
+			}
+
+		}
+		dip++;
+	
+	}
+
+
+
+
+
+
+	// Test 12
+
+	/*
+	Does this simply mean that the nlink for directories has to be 1?
+	*/
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
+
+	for(i = 0 ; i < sb->ninodes; i++) { 
+		
+		if(dip->type == T_DIR) { 
+
+
+			printf("nlinks: %d\n", dip->nlink);
+
+		}
+
+
+		dip++;
+	}
+
 }
 
 
