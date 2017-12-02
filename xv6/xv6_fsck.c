@@ -246,7 +246,7 @@ int main(int argc, char * argv[]) {
 	posIndirect = 0;
 	// go through each inode and store all valid addresses
 	for(i = 0 ; i < sb->ninodes; i++) { 
-		
+		if(dip->type > 0 && dip->type < 4) { 	
 		for(int j = 0; j < NDIRECT+1; j++) { 
 	
 			 if(dip->addrs[j] != 0 && (dip->addrs[j] > (IBLOCK(sb->ninodes)+1) && dip->addrs[j] < sbuf.st_size/BSIZE)) { 
@@ -261,46 +261,56 @@ int main(int argc, char * argv[]) {
 			
 
 				uint * dblock,*  indirect_addr;
-				dblock = (uint*)( img_ptr + dip->addrs[12]*BSIZE);				
+				dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);				
 
-				for(int  l = 0; l < BSIZE/sizeof(uint); l++)  {
+				for(uint  l = 0; l < BSIZE/sizeof(uint); l++)  {
 						indirect_addr = (uint*)(dblock+l);	
+						
+					//	printf("Indirect address : %d block addr: %d \n", *indirect_addr, dip->addrs[12]);
 		     			        if(*indirect_addr != 0 && (*indirect_addr > (IBLOCK(sb->ninodes)+1) && *indirect_addr < sbuf.st_size/BSIZE)) {
-								printf("Indirect address : %d\n", *indirect_addr);
+							//	printf("Indirect address : %d\n", *indirect_addr);
 								validIndirectInodes[posIndirect] = (uint)*indirect_addr;
 								posIndirect++;	
-	
                                                  }
 
 				}
                  }
+		}
 
 		dip++;
 	} 	
-	/*	
-	for(int j = 0 ; j < pos; j++) { 
-			printf("valid inode %d: %d\n", j, validInodes[j]);	
+	/*
+	printf("List of all direct addresses: \n");
+	for( i = 0 ; i < posDirect; i++) { 
+		printf("%d ", validDirectInodes[i]);
+		if(i % 8 == 0) printf("\n");
 	}
-	*/
+		
+	printf("\n List of all indirect addresses: \n");
+	for(i = 0; i < posIndirect; i++) { 
+		printf("%d ", validIndirectInodes[i]);
+		if(i%8 == 0) printf("\n"); 
+	}
 	
 	printf("------------------------\n");
-	
+	*/
 	// for every byte in the final 
 	for(i = 0 ; i < BSIZE ; i++) { 
 
 		// get the actual byte 
                 actual_byte = (uchar)*((uchar*)img_ptr + (IBLOCK(sb->ninodes)+1)*BSIZE + i);
-
 		for(int j = 0; j < 8 ; j++) { 
 			// get the actual bit
 
 			uint foundFlag = 0;
-			if(((actual_byte) & (128 >> j)))  {
+			if(((actual_byte >> j) & (1)))  {
 					
+						
 					// obtain the correct block number
 					data_block = i*8 + j;				
+					
 					if(data_block <= (IBLOCK(sb->ninodes)+1)) continue;	
-				
+					
 					// check if the block number is present within our array of valid nodes
 					for(int k = 0 ; k < posDirect; k++) { 
 	 					if(validDirectInodes[k] == data_block) { 
@@ -310,11 +320,9 @@ int main(int argc, char * argv[]) {
 					}
 					
 					// if it wasnt found in the direct addresses, then try finding it in the indirect addresses
-					if(foundFlag != 0) { 
-					
+					if(foundFlag != 1) { 
 						for(int k=0; k < posIndirect; k++) { 
-						
-							if(validIndirectInodes[k] == (uint)data_block) { 
+							if(validIndirectInodes[k] == data_block) { 
 								foundFlag = 1;	
 								break;
 							}	
@@ -322,8 +330,9 @@ int main(int argc, char * argv[]) {
 						}
 					}
 					if(foundFlag!=1) { 
-				
-					printf("block no: %d\n", data_block);	
+									
+							printf("bblock value: %ld block number: %d \n", BBLOCK(data_block, sb->ninodes), data_block);
+							printf("block no: %d\n", data_block);	
 							printf("Error\n");
 					}
 
@@ -331,8 +340,113 @@ int main(int argc, char * argv[]) {
 			}
 		}
 	}
+	
+
+
+
+	// Test 7	
+
+		
+	/* using the two arrays containing the direct and indirect address that we had obtained from the previous tests
+		we can use them to find out if there are any direct or indirect address repeats			
+				
+	*/
+	int cmpfunc(const void *a, const void *b)
+	{
+ 		   return (*(int *) a - *(int *) b);
+	}
+	//Sort the array of direct addresses
+	qsort(validDirectInodes, posDirect, sizeof(uint), cmpfunc); 
+	
+	/*
+	for(i=0; i < posDirect; i++) { 
+		printf("%d ", validDirectInodes[i]);
+	}
+	*/
+	// check if adjacent elements are the same
+	for(i=1; i < posDirect; i++) { 
+		
+		if(validDirectInodes[i-1] == validDirectInodes[i]){  
+			fprintf(stderr, "ERROR: direct address used more than once\n");
+		}
+
+	}
+
+	// Test 8
+
+	qsort(validIndirectInodes, posIndirect, sizeof(uint), cmpfunc);
+
+	/*	
+	for(i=0; i < posIndirect;i++) { 
+		printf("%d ", validIndirectInodes[i]);
+	}
+	*/
+	
+	for(i=1; i < posIndirect; i++) { 
+		if(validIndirectInodes[i-1] == validIndirectInodes[i]) { 
+			fprintf(stderr, "ERROR: indirect address used more than once\n");
+		}
+	}
+
+
+	// Test 9
+
+	/* 
+	This test is weird, so let me see if i can reason this correctly.
+	We know that each file/directory/special device has an inode associated with it.
+	This means that each directory has files that are associated with it and each of these
+	files would need to be refereced to a certain inode in the set of inodeos
+	*/
+
+	uint inums[10000];
+	uint inumsCount = 0;
+	// let us run through the set of inodes to find those inodes which are directories
+		
+        dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	for(i=0; i < sb->ninodes;i++) { 
+
+		if(dip->type == T_DIR) { 
+			//printf("--------------------------------------\n");						
+			//printf("directory inode: %d \n", i);
+			d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
+			for(int j = 0; j < BSIZE/sizeof(struct dirent) ; j++) { 
+				//printf("loop: %d\n", j);
+				if(d->inum <= sb->ninodes) { 
+						//printf("directory inode value: %d directory name: %s\n", d->inum,d->name);
+						inums[inumsCount] = d->inum;		
+						inumsCount++;
+
+				}
+				d++;
+			}
+		}
+		dip++;
+	}
+	
+	// iterate though all the collected inums to find out if it exists
+
+	int referenced;
+	for(i=0; i < inumsCount; i++)  { 
+			
+		referenced = 0;
+		for(int j=0 ; j < 200; j++) { 
+			if(inums[i] == j){
+				 referenced = 1; 
+				break;	
+			}
+		}
+		if(!referenced) { 
+			fprintf(stderr , "ERROR: inode marked use but not found in a directory\n"); 
+		}
 		
 
+	}
 
+	// Test 10
+
+	/* let me try to understand what is exactly happening here.
+	So we should basically go through each directory entry
 }
+
+
 
