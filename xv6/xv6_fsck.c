@@ -63,9 +63,12 @@ struct dirent {
 
 int main(int argc, char * argv[]) { 
 
-	int fd = open("fs.img", O_RDONLY);	
-	assert(fd > -1);
-
+	int fd = open(argv[1], O_RDONLY);	
+	if(fd == -1) {	
+		fprintf(stderr, "image not found.\n");
+		exit(1);
+		}
+	
 	int rc;
 	struct stat sbuf;
 	rc = fstat(fd, &sbuf);
@@ -73,6 +76,8 @@ int main(int argc, char * argv[]) {
 	
 	void *img_ptr;
 	img_ptr = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0); 
+
+	
 	assert(img_ptr != MAP_FAILED);
 
 
@@ -85,7 +90,8 @@ int main(int argc, char * argv[]) {
  	for(i = 0; i < sb->ninodes; i++) { 
 		//printf("type: %d\n", dip->type);
 		if(dip->type < 0 || dip->type > 3) { 
-			fprintf(stderr, "ERROR: bad inode");	
+			fprintf(stderr, "ERROR: bad inode.\n");	
+				exit(1);
 		}
 		dip++;
 	}
@@ -103,15 +109,15 @@ int main(int argc, char * argv[]) {
 			
 
 			if((dip->addrs[12] < (IBLOCK(sb->ninodes)+1) && (dip->addrs[12] != 0))|| dip->addrs[12] > sbuf.st_size/BSIZE) { 
-				fprintf(stderr, "ERROR: bad indirect address in inode\n");
-				printf("type of inode: %d address: %d \n", dip->type, dip->addrs[12]);		
+				fprintf(stderr, "ERROR: bad indirect address in inode.\n");
+				exit(1);
 			}
 
 			// check if each direct address is valid
 			for(int j = 0 ; j < NDIRECT ; j++)  {
 					if(dip->addrs[j] < (IBLOCK(sb->ninodes) &&  (dip->addrs[12] != 0)) || dip->addrs[j] > sbuf.st_size/BSIZE) { 
-                                		fprintf(stderr, "ERROR: bad direct address in inode\n");
-		                                printf("type of inode: %d address: %d\n", dip->type, dip->addrs[j]);
+                                		fprintf(stderr, "ERROR: bad direct address in inode.\n");
+						exit(1);
 
 	                      		}
  
@@ -135,22 +141,26 @@ int main(int argc, char * argv[]) {
 		// check if the . directory exists
 		d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
 		if(strcmp(d->name, ".") != 0) { 
-			fprintf(stderr, "ERROR: root directory does not exist\n");
+			fprintf(stderr, "ERROR: root directory does not exist.\n");
+						exit(1);
 		}
 
 		if(d->inum != 1) { 
-                        fprintf(stderr, "ERROR: root directory does not exist\n");
+                        fprintf(stderr, "ERROR: root directory does not exist.\n");
+						exit(1);
 		}
 		
 		// check if the .. directory exists
 		d++;
 		if(strcmp(d->name, "..") != 0) { 
-			fprintf(stderr, "ERROR: root directory does not exist\n");
+			fprintf(stderr, "ERROR: root directory does not exist.\n");
+						exit(1);
 		}
 		
 		// check if the inum of the parent directory is also is 1	
 		if(d->inum != 1) { 
-			fprintf(stderr, "ERROR: root directory does not exist\n");
+			fprintf(stderr, "ERROR: root directory does not exist.\n");
+						exit(1);
 		}
  			
 
@@ -163,24 +173,33 @@ int main(int argc, char * argv[]) {
 	
 	for(i = 0 ; i < sb->ninodes; i++)   { 
 
+		fprintf("------------------------------------------------------\n");
 		// check if the type of the inode is a directory
 		if(dip->type == T_DIR) { 
 				
 			// check if the . exists
 			d = (struct dirent *) (img_ptr + dip->addrs[0]*512);
+
+			printf("d->name = %s\n", d->name);
+		
         	        if(strcmp(d->name, ".") != 0) {
-	                       fprintf(stderr, "ERROR: directory not properly formatted\n");
+	                       fprintf(stderr, "ERROR: directory not properly formatted.\n");
+						exit(1);
                 	}
 
 			// check if the inum number matches the inode number - indicating that the . entry points to the directory itself
 			if(d->inum != i) { 
-                               fprintf(stderr, "ERROR: directory not properly formatted\n");
+                               fprintf(stderr, "ERROR: directory not properly formatted.\n");
+						exit(1);
 			}
 		
 			// check if the .. entry exists
 			d++;
+			
+			printf("d->name = %s\n", d->name);
 			if(strcmp(d->name, "..") != 0) { 
-                               fprintf(stderr, "ERROR: directory not properly formatted\n");			
+                               fprintf(stderr, "ERROR: directory not properly formatted.\n");			
+						exit(1);
 			}
 			
 		}
@@ -219,7 +238,8 @@ int main(int argc, char * argv[]) {
 					//printf("value: %d index: %d block addrs: %d\n", value, i, dip->addrs[j]);
 					if(value != 1) { 
 						//printf("bit number: %d\n value: %d\n", bit_number, value);
-						fprintf(stderr ,"ERROR: address used by inode but marked free in bitmap\n");
+						fprintf(stderr ,"ERROR: address used by inode but marked free in bitmap.\n");
+						exit(1);
 					}
 
 				}
@@ -330,11 +350,10 @@ int main(int argc, char * argv[]) {
 						}
 					}
 					if(foundFlag!=1) { 
-									
-							printf("bblock value: %ld block number: %d \n", BBLOCK(data_block, sb->ninodes), data_block);
-							printf("block no: %d\n", data_block);	
-							printf("Error\n");
+							 fprintf(stderr,"ERROR: bitmap marks block in use but it is not in use.\n");			
+							 exit(1);
 					}
+						
 
 					
 			}
@@ -367,7 +386,8 @@ int main(int argc, char * argv[]) {
 	for(i=1; i < posDirect; i++) { 
 		
 		if(validDirectInodes[i-1] == validDirectInodes[i]){  
-			fprintf(stderr, "ERROR: direct address used more than once\n");
+			fprintf(stderr, "ERROR: direct address used more than once.\n");
+							 exit(1);
 		}
 
 	}
@@ -384,7 +404,8 @@ int main(int argc, char * argv[]) {
 	
 	for(i=1; i < posIndirect; i++) { 
 		if(validIndirectInodes[i-1] == validIndirectInodes[i]) { 
-			fprintf(stderr, "ERROR: indirect address used more than once\n");
+			fprintf(stderr, "ERROR: indirect address used more than once.\n");
+							 exit(1);
 		}
 	}
 
@@ -436,7 +457,8 @@ int main(int argc, char * argv[]) {
 			}
 		}
 		if(!referenced) { 
-			fprintf(stderr , "ERROR: inode marked use but not found in a directory\n"); 
+			fprintf(stderr , "ERROR: inode marked use but not found in a directory.\n"); 
+							 exit(1);
 		}
 		
 
@@ -467,7 +489,8 @@ int main(int argc, char * argv[]) {
 				
 				// check if the inode exists within the inode table
 				if(d->inum >= sb->ninodes) { 
-					fprintf(stderr, "ERROR: inode referred to in directory but marked free\n");	
+					fprintf(stderr, "ERROR: inode referred to in directory but marked free.\n");	
+							 exit(1);
 				}
 			}
 
@@ -487,15 +510,17 @@ int main(int argc, char * argv[]) {
 	If the counter value matches the value of nlinks, then you're in good shape.
 	Else, something messed up
 	*/
-
+/*
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 	
 	// iterate through each inode
 	for( i=0; i < sb->ninodes; i++) { 
-	
+
+		printf("--------------------------------------------\n");
 		// check if the inode points to a file
 		if(dip->type == T_FILE) { 
-			
+		
+			printf("file inode number: %d\n", i);
 			struct dinode * dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
 			// now iterate through each inode of type T_DIR
 			int link_counter = 0;
@@ -505,7 +530,7 @@ int main(int argc, char * argv[]) {
 					// set the directory pointer
 					 d = (struct dirent *)(img_ptr + dip_2->addrs[0]*512);
 					 for(int k = 0 ; k < BSIZE/sizeof(struct dirent); k++) {
-					
+						//printf("file name: %s file inum: %d\n", d->name, d->inum);
 						// is the inode that the file links to the same as the inode of the file?~:w
 						if(d->inum == i) { 
 							// increment the counter because the file is being referenced 
@@ -517,18 +542,22 @@ int main(int argc, char * argv[]) {
 
 				}
 				dip_2++;
+
 			}
+
 			// here, we should have obtained the number of possible links
 			// now compare them
+			printf("reference count: %d ,  dip count %d\n", link_counter, dip->nlink);
 			if(dip->nlink != link_counter) { 
 				fprintf(stderr, "ERROR: bad reference count for file\n");
+				//exit(1);
 			}
 
 		}
 		dip++;
 	
 	}
-
+*/
 
 
 
@@ -545,8 +574,12 @@ int main(int argc, char * argv[]) {
 		
 		if(dip->type == T_DIR) { 
 
-
-			printf("nlinks: %d\n", dip->nlink);
+			if(dip->nlink != 1) {
+				
+				fprintf(stderr, "ERROR: directory appears more than once in file system.\n");
+				exit(1);
+			}		 
+			
 
 		}
 
@@ -554,7 +587,8 @@ int main(int argc, char * argv[]) {
 		dip++;
 	}
 
+	// everything passed
+	exit(0);
 }
-
 
 
