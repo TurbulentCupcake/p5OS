@@ -138,11 +138,6 @@ int main(int argc, char * argv[]) {
 	dip++;
 	struct dirent *d;
 
-		if(dip->type != T_DIR) {
-			fprintf(stderr, "ERROR: root directory does not exist.\n");
-		                         exit(1);
-
-		} 
 			
 			
 		// check if the . directory exists
@@ -171,38 +166,32 @@ int main(int argc, char * argv[]) {
 		}
  			
 */
+
 	// Test 4
 
 
 	// go through each inode 
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
- 	struct dirent * d;	
+	
+	struct dirent *d;
 	for(i = 0 ; i < sb->ninodes; i++)   { 
 
 		// check if the type of the inode is a directory
+		if(dip->type == T_DIR) { 
 			
-			//printf("loop: %d\n", i);
-
-			if(i == 1 && dip->type != T_DIR) {
-				fprintf(stderr, "ERROR: root directory does not exist.\n");
-				exit(1);
-
-			} 
-
-
-			if(i == 1 && dip->type == T_DIR) {
-
-
-
+			printf("loop: %d\n", i);
+			if(i == 0) {
+	
 				d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
-
-
 				if(strcmp(d->name, ".") != 0) { 
-
-					fprintf(stderr, "ERROR: directory not properly formatted.\n");
+					fprintf(stderr, "ERROR: root directory does not exist.\n");
 								exit(1);
 				}
 
+				if(d->inum != 1) { 
+					fprintf(stderr, "ERROR: root directory does not exist.\n");
+								exit(1);
+				}
 				
 				// check if the .. directory exists
 				d++;
@@ -219,7 +208,7 @@ int main(int argc, char * argv[]) {
 					
 				
 			
-			 } else if(dip->type  == T_DIR) {
+			 } else {
 
 				// check if the . exists
 				d = (struct dirent *) (img_ptr + dip->addrs[0]*512);
@@ -243,6 +232,7 @@ int main(int argc, char * argv[]) {
 				}
 			}
 			
+		}
 		dip++;
 	
 	}
@@ -263,7 +253,7 @@ int main(int argc, char * argv[]) {
 			// run through the addresses 
 			for(int j = 0; j < NDIRECT + 1; j++) {
 				// ensure the address is not 0 and valid
-				if(dip->addrs[j] != 0) { 
+				if(dip->addrs[j] != 0 && (dip->addrs[j] > (IBLOCK(sb->ninodes)+1) && dip->addrs[j] < sbuf.st_size/BSIZE)) { 
 			
 				
 					// figure which byte the address value belongs to
@@ -271,7 +261,7 @@ int main(int argc, char * argv[]) {
 					// get the bit offset		
 					bit_number = dip->addrs[j]%8 ;
 					// get the actual byte position from the beginning 
-					actual_byte = (uchar)*((uchar*)img_ptr + (BBLOCK(dip->addrs[j], sb->ninodes))*BSIZE + byte_number);	
+					actual_byte = (uchar)*((uchar*)img_ptr + (IBLOCK(sb->ninodes)+1)*BSIZE + byte_number);	
 					// onbtain the correct value by bit shifting
 					//value = (actual_byte) & ( (7-bit_number) <<  1);
 					value = (actual_byte >> bit_number) & 1;				
