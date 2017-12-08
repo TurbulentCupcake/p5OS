@@ -254,13 +254,15 @@ int main(int argc, char * argv[]) {
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 	uint byte_number, bit_number;
 	uchar actual_byte, value;
+	 uint * dblock, * indirect_addr;
+
 	// run through the inodes
 	for(i = 0 ; i < sb->ninodes ; i++) { 
 
 		// ensure the inode type is valid 
 		if(dip->type > 0 && dip->type < 4) { 
 
-			// run through the addresses 
+			// run through the direct addresses and check 
 			for(int j = 0; j < NDIRECT + 1; j++) {
 				// ensure the address is not 0 and valid
 				if(dip->addrs[j] != 0) { 
@@ -286,6 +288,42 @@ int main(int argc, char * argv[]) {
 			
 
 			} 
+
+
+
+			// check if the indirect block is valid
+			if(dip->addrs[12] != 0) {
+	
+				dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);
+				
+				// run through the indirect addr3ess and check the same thing for each of the elements
+				for(int j = 0; j < BSIZE/sizeof(uint) ; j++) {
+			
+					indirect_addr = (uint*)(dblock+j);	
+					
+					// make sure the address is valid
+					if(*indirect_addr != 0 && (*indirect_addr > (BBLOCK(*indirect_addr, sb->ninodes)) && *indirect_addr <
+									sbuf.st_size/BSIZE)) {
+							
+
+						byte_number = *indirect_addr/8;
+						bit_number  = *indirect_addr%8;
+						actual_byte = (uchar)*((uchar*)img_ptr + (BBLOCK(*indirect_addr, sb->ninodes))*BSIZE + byte_number);
+						value = (actual_byte >> bit_number) & 1;
+						if(value != 1) {
+							
+							 fprintf(stderr ,"ERROR: address used by inode but marked free in bitmap.\n");
+							   exit(1);
+							
+						} 
+						
+					
+					} 
+				
+				
+				}
+
+		   	}
 		
 		
 		}
@@ -320,7 +358,7 @@ int main(int argc, char * argv[]) {
 		  if(dip->addrs[12] != 0 && (dip->addrs[12] > (IBLOCK(sb->ninodes)+1) && dip->addrs[12] < sbuf.st_size/BSIZE)) {
 			
 
-				uint * dblock,*  indirect_addr;
+				//uint * dblock,*  indirect_addr;
 				dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);				
 
 				for(uint  l = 0; l < BSIZE/sizeof(uint); l++)  {
@@ -453,10 +491,9 @@ int main(int argc, char * argv[]) {
 	// Test 9
 
 	/* 
-	This test is weird, so let me see if i can reason this correctly.
-	We know that each file/directory/special device has an inode associated with it.
-	This means that each directory has files that are associated with it and each of these
-	files would need to be refereced to a certain inode in the set of inodeos
+		For this check, check if for each inum that is referenced to in a directory, check if the inode
+		for that inum is a type other than 0
+	
 	*/
 
 	uint inums[10000];
@@ -485,12 +522,12 @@ int main(int argc, char * argv[]) {
 	}
 	
 	// iterate though all the collected inums to find out if it exists
-
+/*
 	int referenced;
 	for(i=0; i < inumsCount; i++)  { 
 			
 		referenced = 0;
-		for(int j=0 ; j < 200; j++) { 
+		for(int j=0 ; j < sb->ninodes; j++) { 
 			if(inums[i] == j){
 				 referenced = 1; 
 				break;	
@@ -503,7 +540,7 @@ int main(int argc, char * argv[]) {
 		
 
 	}
-
+*/
 	// Test 10
 
 	/* let me try to understand what is exactly happening here.

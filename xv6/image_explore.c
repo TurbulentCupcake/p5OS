@@ -93,6 +93,10 @@ int main(int argc, char * argv[]) {
 		printf("loop: %d location: %d\n", i, dip->addrs[0]);
 		if(dip->type == T_DIR) {
 			printf("-----------------\n");
+			for(int k = 0 ; k < NDIRECT + 1; k++ ) {
+				printf("directory inode contents: %d\n", dip->addrs[k]);
+			} 
+
 			struct dirent * d = (struct dirent *)(img_ptr + dip->addrs[0]*BSIZE);
 			for(int j = 0 ; j < BSIZE/sizeof(struct dirent) ; j++) {
 		
