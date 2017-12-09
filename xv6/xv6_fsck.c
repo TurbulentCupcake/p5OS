@@ -82,6 +82,7 @@ int main(int argc, char * argv[]) {
 	
 	assert(img_ptr != MAP_FAILED);
 
+	 uint * dblock, * indirect_addr;
 
 	struct superblock *sb;
  	sb = (struct superblock *) (img_ptr + BSIZE);	
@@ -115,6 +116,25 @@ int main(int argc, char * argv[]) {
 				exit(1);
 			}
 
+			if(dip->addrs[12] != 0) {
+				
+					
+				dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);
+
+				for(int j = 0 ; j <  BSIZE/sizeof(uint) ; j++) {
+			
+				 	indirect_addr = (uint*)(dblock+j);
+						
+						if((*indirect_addr < (IBLOCK(sb->ninodes)+1) && (*indirect_addr != 0))|| *indirect_addr > sbuf.st_size/BSIZE) {
+
+							fprintf(stderr, "ERROR: bad indirect address in inode.\n");
+							//exit(1);
+								
+						}
+
+				}
+				 
+			}
 			// check if each direct address is valid
 			for(int j = 0 ; j < NDIRECT ; j++)  {
 					if(dip->addrs[j] < (IBLOCK(sb->ninodes) &&  (dip->addrs[12] != 0)) || dip->addrs[j] > sbuf.st_size/BSIZE) { 
@@ -125,9 +145,6 @@ int main(int argc, char * argv[]) {
  
  	  		}
 			
-			
-
-
 		}
 		dip++;
 	}
@@ -254,7 +271,6 @@ int main(int argc, char * argv[]) {
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 	uint byte_number, bit_number;
 	uchar actual_byte, value;
-	 uint * dblock, * indirect_addr;
 
 	// run through the inodes
 	for(i = 0 ; i < sb->ninodes ; i++) { 
@@ -597,72 +613,96 @@ int main(int argc, char * argv[]) {
 	} 
 
 
+	// Test  11
+
 	
-
-
-
-
-
-
-
-	// Test 11
-	/* let me try to think this through too.
-	Essentially, we need to look at the inode of every file and get its nlinks value
-	Once we have this value, we need to iterate through every inode which happens
-	to be a directory and go to the address of that directory. 
-	Once we find the first address, just go through that whole directory and if you see
-	the name of that file, increment a counter.
-	If the counter value matches the value of nlinks, then you're in good shape.
-	Else, something messed up
-	*/
-/*
-	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 	
-	// iterate through each inode
-	for( i=0; i < sb->ninodes; i++) { 
+	 dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	
+	// run through the inodes
+	for(i = 0 ; i < sb->ninodes ; i++) {
 
-		printf("--------------------------------------------\n");
-		// check if the inode points to a file
-		if(dip->type == T_FILE) { 
+		// make sure it is a file
+		if(dip->type == T_FILE) {
+	
+			// run through the inodes again 
+			dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
+
+			uint numlinks = 0;
+			for(int j = 0 ; j < sb->ninodes ; j++) {
+			
+				// check if it is a folder
+				if(dip_2->type == T_DIR)  {
 		
-			printf("file inode number: %d\n", i);
-			struct dinode * dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
-			// now iterate through each inode of type T_DIR
-			int link_counter = 0;
-			for(int j = 0 ; j  < sb->ninodes ;j++)  {
-				// check if the type of the inode is a directory
-				if(dip_2->type == T_DIR) { 
-					// set the directory pointer
-					 d = (struct dirent *)(img_ptr + dip_2->addrs[0]*512);
-					 for(int k = 0 ; k < BSIZE/sizeof(struct dirent); k++) {
-						//printf("file name: %s file inum: %d\n", d->name, d->inum);
-						// is the inode that the file links to the same as the inode of the file?~:w
-						if(d->inum == i) { 
-							// increment the counter because the file is being referenced 
-							link_counter++;
-						}
-						d++;
-					 }
+					// iterate through all the direct links of the folders data blocks to see if the file has been referenced
+						for(int k = 0 ; k < NDIRECT ; k++) {
+				
+						// check if the address to the directory data block is non zero
+							if(dip_2->addrs[k] != 0) {
+						
+								// go to the data block of the directory
+								d = (struct dirent *)(img_ptr + dip_2->addrs[k]*512);
+								for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
+							
+									// if the directory of the inum matches, then increment our counter
+									if(d->inum == i) {
+										numlinks++;
+									}
+									d++;	
+								}
+							
+						 	}
+						 }
+
+						// if we have an indirect address 
+						if(dip_2->addrs[12] != 0) {
+			
+							// access the block of indirect addresses
+							dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);	
+							
+							// iterate through the indirect addresses
+							for(int l = 0 ; l < BSIZE/sizeof(uint) ; l++) {
+						
+								indirect_addr =  (uint*)(dblock+l); 
+								
+								// check  if this indirect address is valid
+								if(*indirect_addr != 0) {
+							
+									//initialize the directory now 	
+									d = (struct dirent *)(img_ptr + (*indirect_addr)*512);
+
+									// iterate through the directories
+									for(int m = 0; m < BSIZE/sizeof(struct dirent) ; m++) {
+									
+										if(d->inum == i) {
+											numlinks++;
+										}
+										d++;
+									}
+								
+								} 
+								
+
+							}
+				
+						} 
 
 
+					}
+
+					dip_2++;
 				}
-				dip_2++;
+				
+				if(numlinks != dip->nlink) {
+					fprintf(stderr , "ERROR: bad reference count for file.\n");
+					exit(1);
+			
+				} 
 
-			}
-
-			// here, we should have obtained the number of possible links
-			// now compare them
-			printf("reference count: %d ,  dip count %d\n", link_counter, dip->nlink);
-			if(dip->nlink != link_counter) { 
-				fprintf(stderr, "ERROR: bad reference count for file\n");
-				//exit(1);
-			}
-
+				
+			} 
+			dip++;	
 		}
-		dip++;
-	
-	}
-*/
 
 
 
