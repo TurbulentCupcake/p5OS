@@ -535,9 +535,69 @@ int main(int argc, char * argv[]) {
 	// Test fucking 9
 
 	 dip = (struct dinode *) (img_ptr + 2*BSIZE);
-
+	
 	 // run through each inode
+	for(i = 0 ; i < sb->ninodes ; i++) {
 
+		// check if this inode is in use
+		if(dip->type > 0 && dip->type < 4) {
+	
+
+			int inode_ref_count = 0;
+
+			// run through the inode table again
+			dip_2 =  (struct dinode *) (img_ptr + 2*BSIZE);
+
+			for(int j = 0 ; j < sb->ninodes ; j++) {
+			
+				// check if it is a directory
+				if(dip_2->type == T_DIR)  {
+			
+						// go through all direct addresses	
+						for(int k = 0 ; k < NDIRECT ; k++) {
+							
+							if(dip_2->addrs[k] != 0) {
+						
+								// run through the directory elements
+								d = (struct dirent *)(img_ptr + dip_2->addrs[k]*512);
+
+								for(int l = 0 ; l <  BSIZE/sizeof(struct dirent) ; l++) {
+							
+									if(d->inum == i) {
+										inode_ref_count++;
+									}
+									d++;
+
+								}
+							}
+						}
+						
+			
+				}		
+			
+			
+		
+				dip_2++;	
+			} 
+
+			if(inode_ref_count == 0) {
+		
+				fprintf(stderr, "ERROR: inode marked use but not found in a directory.\n");
+				exit(1);
+			}
+
+
+
+		}
+
+	dip++;
+
+
+
+	} 
+
+
+	
 
 
 
