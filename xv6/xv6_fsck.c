@@ -128,7 +128,7 @@ int main(int argc, char * argv[]) {
 						if((*indirect_addr < (IBLOCK(sb->ninodes)+1) && (*indirect_addr != 0))|| *indirect_addr > sbuf.st_size/BSIZE) {
 
 							fprintf(stderr, "ERROR: bad indirect address in inode.\n");
-							//exit(1);
+							exit(1);
 								
 						}
 
