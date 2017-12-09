@@ -707,28 +707,57 @@ int main(int argc, char * argv[]) {
 
 
 
-
 	// Test 12
 
-	/*
-	Does this simply mean that the nlink for directories has to be 1?
-	*/
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 
-	for(i = 0 ; i < sb->ninodes; i++) { 
-		
-		if(dip->type == T_DIR) { 
-
-			if(dip->nlink != 1) {
-				
-				fprintf(stderr, "ERROR: directory appears more than once in file system.\n");
-				exit(1);
-			}		 
+	// run through the inode directory
+	for(i = 2 ; i < sb->ninodes; i++) { 
 			
+	//	printf("*\n");
+		// check if it is a directory
+		if(dip->type  == T_DIR) {
+		
+			dip_2 = (struct dinode *) (img_ptr + 2*BSIZE + 2*sizeof(struct dinode));
+			int reference_count = 0;
+			
+			// run through each other directory which is not the same directory as ours
+			for(int j = 0 ; j < sb->ninodes ; j++) {
+				
+	//			printf("**\n");
+				// the inode should be of type directory and it should not be the same directory
+				if(dip_2->type == T_DIR) {
+			
+					for(int k = 0 ; k < NDIRECT ; k++) {
+			
+						if(dip_2->addrs[k] != 0) {
+					
+							d = (struct dirent *)(img_ptr + dip_2->addrs[k]*512 + 2*sizeof(struct dinode)); 
 
-		}
+							for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
+						
+					
+								if(d->inum == i) {
+									reference_count++;
+								} 
+								d++;
+							} 
+						}
+					}
+			
+				}
+				dip_2++;
+			}
 
-
+	
+			if(reference_count > 1) {
+				printf("reference count: %d inode %d\n", reference_count, i);	
+				fprintf(stderr, "ERROR: directory appears more than once in file system.\n");	
+				//exit(1);
+			} 
+	
+		} 
+		
 		dip++;
 	}
 
