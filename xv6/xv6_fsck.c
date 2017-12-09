@@ -488,93 +488,61 @@ int main(int argc, char * argv[]) {
 	}
 
 
-	// Test 9
+	// Test 10
 
-	/* 
-		For this check, check if for each inum that is referenced to in a directory, check if the inode
-		for that inum is a type other than 0
-	
-	*/
-
-	uint inums[10000];
-	uint inumsCount = 0;
 	// let us run through the set of inodes to find those inodes which are directories
 		
         dip = (struct dinode *) (img_ptr + 2*BSIZE);
+	struct dinode * dip_2;	
+	// run through the inodes
 	for(i=0; i < sb->ninodes;i++) { 
 
-		if(dip->type == T_DIR) { 
-			//printf("--------------------------------------\n");						
-			//printf("directory inode: %d \n", i);
-			d = (struct dirent *)( img_ptr + dip->addrs[0]*512);
-			for(int j = 0; j < BSIZE/sizeof(struct dirent) ; j++) { 
-				//printf("loop: %d\n", j);
-				if(d->inum <= sb->ninodes) { 
-						//printf("directory inode value: %d directory name: %s\n", d->inum,d->name);
-						inums[inumsCount] = d->inum;		
-						inumsCount++;
-
-				}
-				d++;
-			}
-		}
-		dip++;
-	}
-	
-	// iterate though all the collected inums to find out if it exists
-/*
-	int referenced;
-	for(i=0; i < inumsCount; i++)  { 
-			
-		referenced = 0;
-		for(int j=0 ; j < sb->ninodes; j++) { 
-			if(inums[i] == j){
-				 referenced = 1; 
-				break;	
-			}
-		}
-		if(!referenced) { 
-			fprintf(stderr , "ERROR: inode marked use but not found in a directory.\n"); 
-							 exit(1);
-		}
+		// see if it is a directory
+		if(dip->type == T_DIR) {
 		
-
-	}
-*/
-	// Test 10
-
-	/* let me try to understand what is exactly happening here.
-	1. So we should basically go through each directory entry.
-	2. Then access its inode number and its addresses.
-	3. check if this address is valid
-	4. Check if the bitmap value for this address is valid also 
-	5. if it is not valid, then scream
-	*/	
-	
-        dip = (struct dinode *) (img_ptr + 2*BSIZE);
-
-	// run through the inodes
-	for(i = 0; i < sb->ninodes; i++) { 
-
-		// check if its a directory
-		if(dip->type == T_DIR) { 
+			// go through the directories
+			d = (struct dirent *)(img_ptr + dip->addrs[0]*512);
+			for(int j = 0 ; j < BSIZE/sizeof(struct dirent) ; j++) {
+		
+				// check if the directory inum matching the inode is in use
+				dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
+				for(int k = 0 ; k < sb->ninodes; k++) {
+		
+					if(d->inum == k && d->inum != 0) {
+						
+						if(dip_2->type == 0) {
+							fprintf(stderr, "ERROR: inode referred to in directory but marked free.\n");
+							exit(1);
+						}
+					}
 			
+					dip_2++;	
+				} 
 			
-                        d = (struct dirent *)(img_ptr + dip->addrs[0]*512);
-			// iterate through the directory entries	
-			for(int j = 0 ; j < BSIZE/sizeof(struct dirent); j++)  {
-				
-				// check if the inode exists within the inode table
-				if(d->inum >= sb->ninodes) { 
-					fprintf(stderr, "ERROR: inode referred to in directory but marked free.\n");	
-							 exit(1);
-				}
-			}
 
-
-		}
+			d++;
+			} 
+		} 
 		dip++;
+
+
+
 	}
+	
+
+
+
+	// Test fucking 9
+
+	 dip = (struct dinode *) (img_ptr + 2*BSIZE);
+
+	 // run through each inode
+
+
+
+
+
+
 
 
 	// Test 11
