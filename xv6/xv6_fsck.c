@@ -866,10 +866,120 @@ int main(int argc, char * argv[]) {
 
 		} 
 		dip++;
-	} 
+	}
+
+/*
+
+	// Extra Credit 1
+
+	  dip = (struct dinode *) (img_ptr + 2*BSIZE);
+
+
+	  // go through all the nodes
+	  for(i = 0 ; i < sb->ninodes ; i++) {
+	
+		// check if it is a directory
+		if(dip->type == T_DIR)  {
+
+			int child_inum;
+			char child_name[DIRSIZ];
+			int parent_inum;
+			char parent_name[DIRSIZ];
+			struct dinode * dip_temp;
+			struct dirent * d_temp;
+
+			// go through the direct addresses
+			for(int j = 0 ; j < NDIRECT ; j++) {
+				
+				// ensure the address is valid
+				if(dip->addrs[j] != 0) {
+	
+					// get the directory pointer
+					d = (struct dirent *)(img_ptr + dip_2->addrs[j]*512);	
+
+					// get the child inum
+					child_inum = d->inum;
+					strcpy(child_name, d->name);
+					// increment by 1 to get to the .. directory index	
+					d++;
+
+					// obtain the inum of this index
+					parent_inum = d->inum;
+					strcpy(parent_name, d->name);	
+
+					// from the main beginning of the inode table, get to the parent inode using the parent inum
+				         dip_temp = (struct dinode *) (img_ptr + 2*BSIZE + parent_inum*sizeof(struct dinode));
+
+					// run through the direct addresses of the dip_temp
+					for(int k = 0; k < NDIRECT ; k++) {
+				
+						// make sure the address is valid
+						if(dip_temp->addrs[k] != 0) {
+					
+							// get the directory entry for the new parent dip	
+							d_temp = (struct dirent *)(img_ptr + dip_temp->addrs[j]*512);	
+
+							// run through its directories
+							for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
+					
+								// check if the child inums match
+								if(d_temp->inum != child_inum) {
+										
+									fprintf(stderr , "ERROR: parent directory mismatch.\n");
+									exit(1);
+
+								} 
+
+
+							} 
+
+
+					
+						}
+					
+					
+					
+					} 
+
+					// check indirect address
+
+					if(dip_temp->addrs[12] != 0) {
+				
+											
+							dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					}
+
+			
+				}
 
 	
+	
 
+
+
+
+
+			}
+	
+	
+		}
+	 
+	 
+	 
+	  } 
+			
+*/
 
 	// everything passed
 	exit(0);
