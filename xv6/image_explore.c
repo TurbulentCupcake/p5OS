@@ -100,7 +100,8 @@ int main(int argc, char * argv[]) {
 			struct dirent * d = (struct dirent *)(img_ptr + dip->addrs[0]*BSIZE);
 			for(int j = 0 ; j < BSIZE/sizeof(struct dirent) ; j++) {
 		
-				printf("directory name: %s directory inum: %d\n", d->name, d->inum);
+				printf("directory name: %s directory inum: %d directory datablock: %d \n", d->name, d->inum, dip->addrs[0]);
+				d++;
 			} 
 		
 		} 

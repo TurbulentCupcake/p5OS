@@ -1,0 +1,168 @@
+-------------------------------------------------------
+name : . inum : 1 
+name : .. inum : 1 
+name : fulldirect inum : 2 
+name : maxfile inum : 3 
+name : oneindir inum : 4 
+name : onedir inum : 5 
+name : emptyfile inum : 6 
+name : dir1 inum : 7 
+name : dir2 inum : 10 
+name : bigdir inum : 14 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+-------------------------------------------------------
+name : . inum : 7 
+name : .. inum : 1 
+name : emptyfile inum : 8 
+name : maxfile inum : 9 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+-------------------------------------------------------
+name : . inum : 10 
+name : .. inum : 1 
+name : fulldirect inum : 11 
+name : onedir inum : 12 
+name : oneindir inum : 13 
+name :  inum : 7 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+-------------------------------------------------------
+name : . inum : 14 
+name : .. inum : 1 
+name : 0 inum : 15 
+name : 1 inum : 16 
+name : 2 inum : 17 
+name : 3 inum : 18 
+name : 4 inum : 19 
+name : 5 inum : 20 
+name : 6 inum : 21 
+name : 7 inum : 22 
+name : 8 inum : 23 
+name : 9 inum : 24 
+name : 10 inum : 25 
+name : 11 inum : 26 
+name : 12 inum : 27 
+name : 13 inum : 28 
+name : 14 inum : 29 
+name : 15 inum : 30 
+name : 16 inum : 31 
+name : 17 inum : 32 
+name : 18 inum : 33 
+name : 19 inum : 34 
+name : 20 inum : 35 
+name : 21 inum : 36 
+name : 22 inum : 37 
+name : 23 inum : 38 
+name : 24 inum : 39 
+name : 25 inum : 40 
+name : 26 inum : 41 
+name : 27 inum : 42 
+name : 28 inum : 43 
+name : 29 inum : 44 
+name : 30 inum : 45 
+name : 31 inum : 46 
+name : 32 inum : 47 
+name : 33 inum : 48 
+name : 34 inum : 49 
+name : 35 inum : 50 
+name : 36 inum : 51 
+name : 37 inum : 52 
+name : 38 inum : 53 
+name : 39 inum : 54 
+name : 40 inum : 55 
+name : 41 inum : 56 
+name : 42 inum : 57 
+name : 43 inum : 58 
+name : 44 inum : 59 
+name : 45 inum : 60 
+name : 46 inum : 61 
+name : 47 inum : 62 
+name : 48 inum : 63 
+name : 49 inum : 64 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+name :  inum : 0 
+directory inode: 1 frequency 2 
+directory inode: 7 frequency 1 
+directory inode: 10 frequency 1 
+directory inode: 14 frequency 1 

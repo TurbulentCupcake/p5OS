@@ -709,99 +709,124 @@ int main(int argc, char * argv[]) {
 
 	// Test 12
 
+
+
+	// create an array containing of number of inodes and initialize it
+	int dir_frequency[sb->ninodes]; for(i = 0 ; i < sb->ninodes ; i++) { dir_frequency[i] = 0 ;}
+
 	dip = (struct dinode *) (img_ptr + 2*BSIZE);
 
-	// run through the inode directory
-	for(i = 0 ; i < sb->ninodes; i++) { 
-			
-	//	printf("*\n");
+	// run through the inodes 
+	for(i = 0 ; i < sb->ninodes ; i++) {
+	
 		// check if it is a directory
-		if(dip->type  == T_FILE) {
+		if(dip->type == T_DIR) {
 		
-			dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
-			int reference_count = 0;
-			
-			// run through each other directory which is not the same directory as ours
-			for(int j = 0 ; j < sb->ninodes ; j++) {
-				
-	//			printf("**\n");
-				// the inode should be of type directory and it should not be the same directory
-				if(dip_2->type == T_DIR && i != j) {
-			
-					// check all direct addresses
-					for(int k = 0 ; k < NDIRECT ; k++) {
-			
-						if(dip_2->addrs[k] != 0) {
-					
-							d = (struct dirent *)(img_ptr + dip_2->addrs[k]*512 ); 
 
-							for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
+			
+			
+			dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
+			
+
+			// once again, run through the inodes again 
+			for(int i2 = 0 ; i2 < sb->ninodes ; i2++) {
+				
+				// once again, check if the inode is a directory
+				if(dip_2->type == T_DIR) {
+			
+					// run through all the direct addresses 
+					for(int j = 0 ; j < NDIRECT + 1; j++) {
 						
-					
+						
+						// make sure the address is valid and allocated
+						if(dip_2->addrs[j] != 0) {
+				
+							// set the pointer to the first position of the directory
+							d = (struct dirent *)(img_ptr + dip_2->addrs[j]*512);
+							// offset twice	
+							d++;
+							d++;
+							// run through the directoires and see how many times the current directory inode appears
+							for(int k = 0 ; k < BSIZE/sizeof(struct dirent) ; k++) {
+						
+								
+								// if you see this inode appearing here, then add 1 to the array index for this directory
 								if(d->inum == i) {
-									reference_count++;
+									dir_frequency[i]++;	
 								} 
 								d++;
 							} 
+
 						}
-					}
-					
-					// if the indirect address is valid
-					if(dip_2->addrs[12] != 0) {
-							
-							
-						// get the correct block of the ddirectories
-						dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);	
-							
-						// iterate through the indirect addresses
-						for(int l = 0 ; l < BSIZE/sizeof(uint) ; l++) {
-					
-							indirect_addr =  (uint*)(dblock+l); 
-						
-							// if the indirect address is valid
+					 }
+
+					if(dip->addrs[12] != 0) {
+			
+						// point to the indirect data blcok
+						dblock = (uint*)(img_ptr + dip_2->addrs[12]*BSIZE);
+			
+						for(int k = 0 ; k < BSIZE/sizeof(uint) ; k++) {
+			
+							// go to the indirect address block
+							indirect_addr = (uint*)(dblock+sizeof(uint)*k);
+
+							// make sure the address is in use	
 							if(*indirect_addr != 0) {
-						
+								
+								d = (struct dirent *)(img_ptr + (*indirect_addr)*512);
+								// offset twice	
+								d++;
+								d++;
+								// run through the directoires and see how many times the current directory inode appears
+								for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
 							
-									d = (struct dirent *)(img_ptr + (*indirect_addr)*512);
-
-									// iterate through the directories
-									for(int m = 0; m < BSIZE/sizeof(struct dirent) ; m++) {
 									
-										if(d->inum == i) {
-											reference_count++;
-										}
-										d++;
-									}
-							
-							
-							
+									// if you see this inode appearing here, then add 1 to the array index for this directory
+									if(d->inum == i) {
+										dir_frequency[i]++;	
+									} 
+									d++;
+								} 
+								
+									
+								
 							}
-							
-						}
-			
-					} 
-			
-				}
+						} 
+					
+					}
 
-
-			
+					}
 				dip_2++;
+
+
+				}
+				
+
+			} 
+
+		dip++;
+
+	}
+
+	dip = (struct dinode *) (img_ptr + 2*BSIZE);
+
+	// print the frequencies for fun
+	for(int i = 0 ; i < sb->ninodes ; i++) {
+	
+		if(dip->type == T_DIR) {
+			
+			if(dir_frequency[i] > 1) {
+				fprintf(stderr ,"ERROR: directory appears more than once in file system.\n");	
+				exit(1);
 			}
 
-	
-		
-			if(reference_count < 1) {
-				
-				fprintf(stderr, "ERROR: directory appears more than once in file system.\n");	
 
-
-				exit(1);
-			} 
-	
 		} 
-		
 		dip++;
-	}
+	} 
+
+	
+
 
 	// everything passed
 	exit(0);
