@@ -563,12 +563,11 @@ int main(int argc, char * argv[]) {
 
 			// run through the inode table again
 			dip_2 =  (struct dinode *) (img_ptr + 2*BSIZE);
-
+	
 			for(int j = 0 ; j < sb->ninodes ; j++) {
 			
 				// check if it is a directory
 				if(dip_2->type == T_DIR)  {
-			
 						// go through all direct addresses	
 						for(int k = 0 ; k < NDIRECT ; k++) {
 							
@@ -587,6 +586,44 @@ int main(int argc, char * argv[]) {
 								}
 							}
 						}
+
+						// go through the indirect address
+						if(dip_2->addrs[12] != 0) {
+						
+							
+							// get to the correct data blcok
+							dblock = (uint*)(img_ptr + dip_2->addrs[12]*BSIZE);				
+							
+							// run through each address
+							for(uint  l = 0; l < BSIZE/sizeof(uint); l++)  {
+									
+									// get the correct indirect address
+									indirect_addr = (uint*)(dblock+l);	
+						
+									
+									// check if the indirect address value is valid
+									if(*indirect_addr!=0) {
+								
+										 d = (struct dirent *)(img_ptr + (*indirect_addr)*512);
+										
+										for(int m = 0 ; m < BSIZE/sizeof(struct dirent) ; m++) {
+											
+											if(d->inum==i) {
+												inode_ref_count++;
+											}
+											d++;
+									
+										} 
+										 	
+
+
+
+									} 
+
+							}
+					
+					
+						} 
 						
 			
 				}		
