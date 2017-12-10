@@ -775,7 +775,7 @@ int main(int argc, char * argv[]) {
 				if(dip_2->type == T_DIR) {
 			
 					// run through all the direct addresses 
-					for(int j = 0 ; j < NDIRECT + 1; j++) {
+					for(int j = 0 ; j < NDIRECT; j++) {
 						
 						
 						// make sure the address is valid and allocated
@@ -787,7 +787,7 @@ int main(int argc, char * argv[]) {
 							d++;
 							d++;
 							// run through the directoires and see how many times the current directory inode appears
-							for(int k = 0 ; k < BSIZE/sizeof(struct dirent) ; k++) {
+							for(int k = 2 ; k < BSIZE/sizeof(struct dirent) ; k++) {
 						
 								
 								// if you see this inode appearing here, then add 1 to the array index for this directory
@@ -818,9 +818,8 @@ int main(int argc, char * argv[]) {
 								d++;
 								d++;
 								// run through the directoires and see how many times the current directory inode appears
-								for(int l = 0 ; l < BSIZE/sizeof(struct dirent) ; l++) {
+								for(int l = 2 ; l < BSIZE/sizeof(struct dirent) ; l++) {
 							
-									
 									// if you see this inode appearing here, then add 1 to the array index for this directory
 									if(d->inum == i) {
 										dir_frequency[i]++;	
@@ -854,11 +853,15 @@ int main(int argc, char * argv[]) {
 	for(int i = 0 ; i < sb->ninodes ; i++) {
 	
 		if(dip->type == T_DIR) {
+
 			
 			if(dir_frequency[i] > 1) {
 				fprintf(stderr ,"ERROR: directory appears more than once in file system.\n");	
 				exit(1);
 			}
+			
+
+			//printf("directory inode: %d inude frequency: %d\n ", i, dir_frequency[i]);
 
 
 		} 
