@@ -650,7 +650,7 @@ int main(int argc, char * argv[]) {
 	} 
 
 
-	// Test  11
+	// Test 11
 
 	
 	
@@ -661,10 +661,9 @@ int main(int argc, char * argv[]) {
 
 		// make sure it is a file
 		if(dip->type == T_FILE) {
-	
+			
 			// run through the inodes again 
 			dip_2 = (struct dinode *) (img_ptr + 2*BSIZE);
-
 			uint numlinks = 0;
 			for(int j = 0 ; j < sb->ninodes ; j++) {
 			
@@ -693,13 +692,15 @@ int main(int argc, char * argv[]) {
 
 						// if we have an indirect address 
 						if(dip_2->addrs[12] != 0) {
-			
+						//	printf("--- has indirect \n");	
 							// access the block of indirect addresses
-							dblock = (uint*)(img_ptr + dip->addrs[12]*BSIZE);	
+							dblock = (uint*)(img_ptr + dip_2->addrs[12]*BSIZE);	
 							
+						//	printf("--- reached past dblock \n");
 							// iterate through the indirect addresses
 							for(int l = 0 ; l < BSIZE/sizeof(uint) ; l++) {
-						
+									
+						//		printf("----- indirect address check : %d \n", l);
 								indirect_addr =  (uint*)(dblock+l); 
 								
 								// check  if this indirect address is valid
@@ -724,12 +725,14 @@ int main(int argc, char * argv[]) {
 				
 						} 
 
-
+				
 					}
+			//		printf("dip_2 iteration : %d \n", j);
 
 					dip_2++;
 				}
-				
+			
+			//	printf("numlinks: %d dip->nlink %d sb->ninodes %d iteration dip: %d \n", numlinks, dip->nlink, sb->ninodes, i);
 				if(numlinks != dip->nlink) {
 					fprintf(stderr , "ERROR: bad reference count for file.\n");
 					exit(1);
@@ -805,7 +808,7 @@ int main(int argc, char * argv[]) {
 						for(int k = 0 ; k < BSIZE/sizeof(uint) ; k++) {
 			
 							// go to the indirect address block
-							indirect_addr = (uint*)(dblock+sizeof(uint)*k);
+							indirect_addr = (uint*)(dblock+k);
 
 							// make sure the address is in use	
 							if(*indirect_addr != 0) {
